@@ -1,5 +1,5 @@
 <template>
-  <div ref="ecSvgId" id="ecSvgId">
+  <div ref="conceptSvgId" id="conceptSvg">
 
   </div>
 </template>
@@ -9,24 +9,22 @@ import global from '../../components/common.vue'
 var svgElem = ''
 export default {
   props: {
-    eclist: '',
-    ecsvgheight: 600,
-    ecsvgwidth: 1200,
-    ecsvgzoomindex: 9,
-    ecshowlayerlist: '',
-    ecbrushid: 'ecBrush',
-    ecsvgid: 'ecSvgId',
-    rectclass: 'drawrect',
-    role: '',
-    drawSvg: ''
+    conceptlist: '',
+    conceptsvgheight: 600,
+    conceptsvgwidth: 1200,
+    conceptsvgzoomindex: 9,
+    conceptshowlayerlist: '',
+    conceptbrushid: 'conceptBrush',
+    conceptsvg: 'conceptSvg',
+    rectclass: 'conceptrect',
+    role: ''
   },
   watch: {
-    eclist (newData, oldData) {
-      this.eclist = newData
-      console.log(this.eclist)
+    conceptlist (newData, oldData) {
+      this.conceptlist = newData
       this.cleanSVG()
       this.init()
-      this.initSVG(this.eclist)
+      this.initSVG(this.conceptlist)
     },
     role (newData, oldData) {
       this.role = newData
@@ -35,8 +33,7 @@ export default {
   },
   methods: {
     init () {
-      var svgDiv = this.$refs.ecSvgId
-      console.log(document)
+      var svgDiv = this.$refs.conceptSvgId
       svgElem = document.createElementNS(global.vctconfig.xmlns, 'svg')
       // svgElem.setAttributeNS(null, 'viewBox', '0 0 ' + global.svgWidth + ' ' + global.svgHeight)
       // svgElem.setAttributeNS(null, 'width', global.svgWidth)
@@ -45,7 +42,7 @@ export default {
       svgElem.style.display = 'inline'
       var defs = document.createElementNS(global.vctconfig.xmlns, 'defs')
       var marker = this.DrawMarker()
-      var rgBrush = this.RGBrush('ecBrush')
+      var rgBrush = this.RGBrush(this.conceptbrushid)
       defs.appendChild(rgBrush)
       defs.appendChild(marker)
       svgElem.appendChild(defs)
@@ -89,7 +86,7 @@ export default {
       return rgbrush
     },
     cleanSVG () {
-      let svgDiv = this.$refs.ecSvgId
+      let svgDiv = this.$refs.conceptSvgId
       let svgElems = svgDiv.getElementsByTagName('svg')
       for (let i = 0; i < svgElems.length; i++) {
         svgDiv.removeChild(svgElems[i])
@@ -125,13 +122,13 @@ export default {
         for (let j = 0; j < ecLayerList[i].length; j++) {
           let ecLat = ecLayerList[i][j]
           let locY = ecLat.layer * (blockHeight + yGrap) + startY
-          let drawOntLat = new global.DrawOntLat('ecrect', ecLat, locY)
+          let drawOntLat = new global.DrawOntLat(this.rectclass, ecLat, locY)
           let g = drawOntLat.drawLat('ecBrush')
           svgElem.appendChild(g)
         }
       }
       this.drawLatLinks(eclist, svgElem)
-      this.$emit('InitSVGFinished')
+      this.$emit('InitSVGFinished', this.rectclass)
     },
     initSVGView (svgElem, svgId, svgWidth, svgHeight) {
       svgElem.setAttributeNS(null, 'viewBox', `0 0 ${svgWidth} ${svgHeight}`)
@@ -183,4 +180,3 @@ export default {
 <style lang="stylus">
 
 </style>
-

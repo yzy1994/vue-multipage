@@ -97,7 +97,7 @@ export default {
     border: 1px solid #444;
     border-radius: 5px;
     box-shadow: 0 1px 3px 2px #666;
-    z-index: 200;
+    z-index: 2;
     display: block;
   }
 

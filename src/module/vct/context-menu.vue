@@ -1,6 +1,7 @@
 <template>
   <div v-show="show" :style="style" style="display: block" @mousedown.stop @contextmenu.prevent class="context">
     <ul class="context-menu">
+      <li class="title">{{ title }}</li>
       <!-- <li class="context-title">{{ this.title }}</li> -->
       <slot></slot>
     </ul>
@@ -13,7 +14,8 @@ export default {
   props: {
     title: '功能菜单',
     target: null,
-    show: Boolean
+    show: Boolean,
+    reload: false
   },
   data () {
     return {
@@ -37,6 +39,7 @@ export default {
       }
     },
     target (val) {
+      this.binded = false
       this.bindEvents()
     }
   },
@@ -44,12 +47,12 @@ export default {
     // 初始化事件
     bindEvents () {
       this.$nextTick(() => {
-        if (!this.target || this.binded) return
-        this.triggerShowFn = this.contextMenuHandler.bind(this)
         console.log(this.target)
-        console.log(this.target.length)
+        console.log(this.binded)
+        if (!this.target || this.binded) return
+        console.log('bind new target')
+        this.triggerShowFn = this.contextMenuHandler.bind(this)
         for (let i = 0; i < this.target.length; i++) {
-          console.log(this.target[i])
           this.target[i].addEventListener('contextmenu', this.triggerShowFn)
         }
         this.binded = true
@@ -82,7 +85,7 @@ export default {
       this.y = e.clientY
       this.layout()
       this.$emit('update:show', true)
-      this.$emit('selectElment', this.selelctElmentId)
+      this.$emit('selectElement', this.selelctElmentId)
       e.preventDefault()
     },
     // 布局
@@ -108,7 +111,7 @@ export default {
   .context ul{
     margin-left 0
   }
-  .context li{
+  .context li.item{
     width 80px
     height 35px
     line-height 35px
@@ -117,8 +120,10 @@ export default {
     display block
     color #1a1a1a
   }
-  .context li:hover {
+  .context li.item:hover {
     background #555555
     color: #ffffff
+  }
+  .context li.title {
   }
 </style>

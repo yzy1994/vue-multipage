@@ -25,11 +25,16 @@ export default {
   },
   mounted: function () {
     this.$refs.EveClass.addEventListener('click', this.clickEC)
+    this.$refs.ecRelation.addEventListener('click', this.clickECR)
   },
   methods: {
     clickEC () {
       this.displayEC = !this.displayEC
       this.$emit('displayEC', this.displayEC)
+    },
+    clickECR () {
+      this.displayECR = !this.displayECR
+      this.$emit('displayECR', this.displayECR)
     }
   }
 }

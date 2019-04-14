@@ -65,14 +65,52 @@
       g.appendChild(text)
       g.appendChild(topLinkNode)
       g.appendChild(bottomLinkNode)
-      var eventData = {
-        'devX': devX,
-        'devY': devY,
-        'devNodeX': devNodeX,
-        'devNodeY': devNodeY
-      }
+      // SVG可拖拽
       latRect.addEventListener('mousedown', function (eve) {
-        this.drag(eve, eventData)
+        let eveTarget = eve.target
+        let originX = parseInt(eveTarget.getAttribute('x'))
+        let originY = parseInt(eveTarget.getAttribute('y'))
+        let x = eve.layerX ? eve.layerX : eve.offsetX
+        let y = eve.layerY ? eve.layerY : eve.offsetY
+        let devX = x - originX
+        let devY = y - originY
+        let gNode = eveTarget.parentNode
+        let gNodeId = gNode.getAttribute('id')
+        let textNode = gNode.getElementsByTagName('text')[0]
+        let originTextX = parseInt(textNode.getAttribute('x'))
+        let originTextY = parseInt(textNode.getAttribute('y'))
+        document.onmousemove = function (ev) {
+          let oevent = ev || eve
+          let oeventX = oevent.layerX ? oevent.layerX : oevent.offsetX
+          let oeventY = oevent.layerY ? oevent.layerY : oevent.offsetY
+          eveTarget.setAttribute('x', oeventX - devX)
+          eveTarget.setAttribute('y', oeventY - devY)
+          gNode.setAttribute('x', oeventX - devX)
+          gNode.setAttribute('y', oeventY - devY)
+          textNode.setAttribute('x', oeventX - x + originTextX)
+          textNode.setAttribute('y', oeventY - y + originTextY)
+        }
+        document.onmouseup = function (e) {
+          document.onmousemove = null
+          document.onmouseup = null
+          let eX = e.layerX ? e.layerX : e.offsetX
+          let eY = e.layerY ? e.layerY : e.offsetY
+          let deltaX = eX - x
+          let deltaY = eY - y
+          let svgNode = gNode.parentNode
+          let lineNodeList = svgNode.getElementsByTagName('line')
+          for (let i = 0; i < lineNodeList.length; i++) {
+            let lineNode = lineNodeList[i]
+            if (lineNode.getAttribute('sourceId') === gNodeId) {
+              lineNode.setAttribute('x1', parseInt(lineNode.getAttribute('x1')) + deltaX)
+              lineNode.setAttribute('y1', parseInt(lineNode.getAttribute('y1')) + deltaY)
+            }
+            if (lineNode.getAttribute('targetId') === gNodeId) {
+              lineNode.setAttribute('x2', parseInt(lineNode.getAttribute('x2')) + deltaX)
+              lineNode.setAttribute('y2', parseInt(lineNode.getAttribute('y2')) + deltaY)
+            }
+          }
+        }
       })
       return g
     }
@@ -121,93 +159,6 @@
       circle.setAttribute('opacity', '0')
       return circle
     }
-
-    // drag = function (eve, eventData) {
-    //   if (!eve) {
-    //     eve = window.event
-    //   }
-    //   let tar = eve.target
-    //   let devX2 = eventData.devX
-    //   let devY2 = eventData.devY
-    //   let devNodeX = eventData.devNodeX
-    //   let devNodeY = eventData.devNodeY
-    //   let doc = document
-    //   let tarPar = tar.parentNode
-    //   let x = eve.layerX ? eve.layerX : eve.offsetX
-    //   let y = eve.layerY ? eve.layerY : eve.offsetY
-    //   let oriX = tarPar.getAttribute('x')
-    //   let oriY = tarPar.getAttribute('y')
-    //   let devX = x - oriX
-    //   let devY = y - oriY
-    //   if (tar.setCapture) {
-    //     tar.setCapture()
-    //   }
-    //   else if (window.captureEvents) {
-    //     window.captureEvents(window.event.MOUSEMOVE | window.event.MOUSEUP)
-    //   }
-    //   doc.onmousemove = function(eve) {
-    //     if (!eve) {
-    //       eve = window.event
-    //     }
-    //     let tx = eve.layerX - devX - oriX
-    //     let ty = eve.layerY - devY - oriY
-    //     tarPar.setAttribute('x', tx + parseInt(oriX))
-    //     tarPar.setAttribute('y', ty + parseInt(oriY))
-    //     let childList = tarPar.childNodes
-    //     for (var i = 0; i < childList.length; i++) {
-    //       let tempChild = childList[i]
-    //       let tempLocX
-    //       let tempLocY
-    //       if (tempChild.tagName === 'circle') {
-    //         tempChild.setAttribute('cx', tx + parseInt(oriX) + devNodeX)
-    //         if (tempChild.getAttribute('type') === this.vctconfig.bottomCir) {
-    //           tempChild.setAttribute('cy', ty + parseInt(oriY) + devNodeY)
-    //         } else {
-    //           tempChild.setAttribute('cy', ty + parseInt(oriY))
-    //         }
-    //       } else if (tempChild.tagName === 'text') {
-    //         tempChild.setAttribute('x', tx + parseInt(oriX) + devX2)
-    //         tempChild.setAttribute('y', ty + parseInt(oriY) + devY2)
-    //       } else {
-    //         tempChild.setAttribute('x', tx + parseInt(oriX))
-    //         tempChild.setAttribute('y', ty + parseInt(oriY))
-    //       }
-    //     }
-    //     var parId = tarPar.getAttribute('id')
-    //     var startLineList = new ArrayList()
-    //     var endLineList = new ArrayList()
-    //     // change the loc of connection
-    //     for (var j = 0; j < conLineList.size(); j++) {
-    //       var conLine = conLineList.get(j)
-    //       var startId = conLine.getAttribute('startId')
-    //       var endId = conLine.getAttribute('endId')
-    //       if (startId === parId) {
-    //         startLineList.add(conLine)
-    //       } else if (endId === parId) {
-    //         endLineList.add(conLine)
-    //       }
-    //     }
-    //     for (var m = 0; m < startLineList.size(); m++) {
-    //       var tempStartLine = startLineList.get(m)
-    //       tempStartLine.setAttribute('x1', tx + parseInt(oriX) + devNodeX)
-    //       tempStartLine.setAttribute('y1', ty + parseInt(oriY) + devNodeY)
-    //     }
-    //     for (var n = 0; n < endLineList.size(); n++) {
-    //       var tempEndLine = endLineList.get(n)
-    //       tempEndLine.setAttribute('x2', tx + parseInt(oriX) + devNodeX)
-    //       tempEndLine.setAttribute('y2', ty + parseInt(oriY))
-    //     }
-    //   }
-    //   doc.onmouseup = function () {
-    //     if (tar.releaseCapture) {
-    //       tar.releaseCapture()
-    //     } else if (window.captureEvents) {
-    //       window.captureEvents(window.event.MOUSEMOVE | window.event.MOUSEUP)
-    //     }
-    //     doc.onmousemove = null
-    //     doc.onmouseup = null
-    //   }
-    // }
   }
   export default {
     httpUrl,

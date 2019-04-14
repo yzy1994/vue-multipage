@@ -2,21 +2,49 @@
   <div id="body">
     <navi></navi>
     <div class="row m-t-20 clearfix w-1140">
-      <leftbar @displayEC="displayEC"></leftbar>
+      <leftbar @displayEC="displayEC" @displayECR="displayECR"></leftbar>
       <righttab></righttab>
     </div>
-    <draggablewin title="事件本体" id="ecsWin" v-bind:visible="this.isECSVisible" @closeWindow="this.closeECSWin">
+    <draggablewin title="事件类层次图" id="ecsWin" :visible="this.isECSVisible" @closeWindow="this.closeECSWin">
       <template slot="content">
-        <ecssvg v-bind:eclist="this.eclist" v-bind:role="this.role" @InitSVGFinished="bindContext"></ecssvg>
+        <div class="objOntToolMenu">
+          <img id="reloadSvg" class="usefulImg reloadImg" src="/static/images/common/reload.png" @click="this.refreshECSvg"/>
+          <img src="/static/images/common/gap.png" class="gap" />
+          <img id="saveSvg" class="usefulImg reloadImg" src="/static/images/common/save.png" @click="this.saveSvg"/>
+          <img src="/static/images/common/gap.png" class="gap" />
+          <img id="printSvg" class="usefulimg printImg" src="/static/images/common/printer.png" />
+          <img src="/static/images/common/gap.png" class="gap" />
+          <img id="zoomoutSvg" class="usefulimg zoomoutImg" src="/static/images/common/zoomout.png">
+          <img src="/static/images/common/gap.png" class="gap" />
+          <img id="zoominSvg" class="usefulimg zoominImg" src="/static/images/common/zoomin.png">
+          <img src="/static/images/common/gap.png" class="gap" />
+			  </div>
+        <ecssvg :eclist="this.eclist" :role="this.role" @InitSVGFinished="bindContext"></ecssvg>
+      </template>
+    </draggablewin>
+    <draggablewin title="概念层次图" id="conceptsWin" :visible="this.isConceptsVisible" @closeWindow="this.closeConceptWin">
+      <template slot="content">
+        <conceptsvg :conceptlist="this.conceptlist" :role="this.role" @InitSVGFinished="bindConceptContext"></conceptsvg>
+      </template>
+    </draggablewin>
+    <draggablewin title="事件非分类关系图" id="ecrsWin" :visible="this.isECRWinVisible" @closeWindow="this.closeECRWin">
+      <template slot="content">
+        <ecrecharts></ecrecharts>
       </template>
     </draggablewin>
     <foot></foot>
-    <contextmenu @selectElment="selectSvgElement" @update:show="openContext" :show="contextMenuVisible" :target="contextMenuTarget">
-      <li id="editEventClass" @click="this.editEventClass">编辑事件类</li>
-      <li id="addEventClass" @click="this.addChildEventClass">添加子事件类</li>
-      <li id="deleteEventClass" @click="this.deleteEventClass">删除事件类</li>
+    <contextmenu @selectElement="selectSvgElement" @update:show="openContext" :show="this.contextMenuVisible" :target="this.contextMenuTarget">
+      <li id="displayEventClass" class="item">查看事件类</li>
+      <li id="editEventClass" class="item" @click="this.editEventClass">编辑事件类</li>
+      <li id="addEventClass" class="item" @click="this.addChildEventClass">添加子事件类</li>
+      <li id="deleteEventClass" class="item" @click="this.deleteEventClass">删除事件类</li>
     </contextmenu>
-    <draggablewin title="事件类编辑" id="ecEditWin" v-bind:visible="this.isECEditVisible" @closeWindow="this.closeECEdit">
+    <contextmenu @selectElement="selectConcept" @update:show="openConceptContext" :show="this.conceptContextMenuVisible" :target="this.conceptContextMenuTarget">
+      <li id="editConcept" class="item">编辑概念</li>
+      <li id="addConcept" class="item">添加子概念</li>
+      <li id="deleteConcept" class="item">删除概念</li>
+    </contextmenu>
+    <draggablewin title="事件类编辑" id="ecEditWin" :visible="this.isECEditVisible" @closeWindow="this.closeECEdit">
       <template slot="content">
         <form id="ecDetailForm" class="ec_form" method="post">
           <ul>
@@ -64,6 +92,8 @@ import righttab from './righttab.vue'
 import draggablewin from '../../components/draggableWin.vue'
 import ecssvg from './ecssvg.vue'
 import contextmenu from './context-menu.vue'
+import ecrecharts from './ecr-echarts.vue'
+import conceptsvg from './conceptsvg.vue'
 export default {
   components: {
     navi,
@@ -72,16 +102,19 @@ export default {
     righttab,
     draggablewin,
     ecssvg,
-    contextmenu
+    contextmenu,
+    ecrecharts,
+    conceptsvg
   },
   data () {
     return {
       role: '',
       eclist: '',
+      conceptlist: '',
       // TODO
       ontologyId: 2,
       contextMenuVisible: false,
-      contextMenuTarget: '',
+      contextMenuTarget: null,
       isECSVisible: true,
       isECEditVisible: true,
       selectElmentId: '',
@@ -91,7 +124,18 @@ export default {
       ec_id: '',
       ec_x: '',
       selectedElement: '',
-      parentElement: ''
+      parentElement: '',
+      isECRWinVisible: true,
+      isConceptsVisible: true,
+      conceptContextMenuTarget: null,
+      conceptContextMenuVisible: false,
+      concept_id: null,
+      selectedConcept: null,
+      parentConcept: null,
+      concept_name: null,
+      concept_parentname: null,
+      concept_parentid: null,
+      concept_x: null
     }
   },
   methods: {
@@ -105,31 +149,69 @@ export default {
         this.role = response.data.role
       })
     },
+    queryConceptList () {
+      axios({
+        method: 'get',
+        url: global.httpUrl + `api/ontology/${this.ontologyId}/concept`,
+        withCredentials: true})
+      .then(response => {
+        this.conceptlist = response.data.data
+        this.role = response.data.role
+        console.log(this.conceptlist)
+      })
+    },
     displayEC (val) {
       this.isECSVisible = val
     },
+    displayECR (val) {
+      this.isECRWinVisible = val
+    },
     bindContext () {
+      console.log('bind new target')
       this.contextMenuTarget = document.getElementsByClassName('ecrect')
+    },
+    bindConceptContext (rectclass) {
+      this.conceptContextMenuTarget = document.getElementsByClassName(rectclass)
     },
     closeECSWin (val) {
       this.isECSVisible = false
     },
+    closeECRWin (val) {
+      console.log(val)
+      this.isECRWinVisible = false
+    },
     closeECEdit (val) {
       this.isECEditVisible = false
+    },
+    closeConceptWin (val) {
+      this.isConceptsVisible = false
     },
     openContext (isShow) {
       this.contextMenuVisible = isShow
       // console.log(selectElmentId)
       // this.selectElmentId = selectElmentId
     },
+    openConceptContext (val) {
+      this.conceptContextMenuVisible = val
+    },
     selectSvgElement (val) {
       this.ec_id = val
       this.selectedElement = this.findObjFromList(this.ec_id, this.eclist)
       this.ec_name = this.selectedElement.name
-      this.ec_parentid = this.selectedElement.parentid
+      this.ec_parentid = this.selectedElement.parentId
       this.parentElement = this.findObjFromList(this.ec_parentid, this.eclist)
       this.ec_parentname = this.parentElement.name
       this.ec_x = this.selectedElement.x
+    },
+    selectConcept (val) {
+      console.log(val)
+      this.concept_id = val
+      this.selectedConcept = this.findObjFromList(this.concept_id, this.conceptlist)
+      this.concept_name = this.selectedElement.name
+      this.concept_parentid = this.selectedConcept.parentId
+      this.parentConcept = this.findObjFromList(this.concept_parentid, this.conceptlist)
+      this.concept_parentname = this.parentElement.name
+      this.ec_x = this.selectedConcept.x
     },
     editEventClass (e) {
       this.isECEditVisible = true
@@ -155,7 +237,6 @@ export default {
           this.refreshECSvg()
         }
       })
-      this.refreshECSvg
     },
     postEventClass () {
       /** 新增事件类 */
@@ -164,7 +245,7 @@ export default {
         url: global.httpUrl + `api/ontology/${this.ontologyId}/eventclass`,
         data: {
           name: this.ec_name,
-          parentid: this.ec_parentid
+          parentId: this.ec_parentid
         },
         withCredentials: true})
       .then(response => {
@@ -178,9 +259,15 @@ export default {
       })
     },
     refreshECSvg () {
+      this.contextMenuTarget = null
       this.queryECList()
       this.contextMenuVisible = false
       this.isECEditVisible = false
+    },
+    refreshConceptSvg () {
+      this.conceptContextMenuTarget = null
+      this.queryConceptList()
+      this.conceptContextMenuVisible = false
     },
     findObjFromList (id, list) {
       console.log(id)
@@ -196,10 +283,43 @@ export default {
         }
       }
       return null
+    },
+    saveSvg () {
+      let gNodes = document.getElementsByTagName('g')
+      for (let i = 0; i < gNodes.length; i++) {
+        let gNode = gNodes[i]
+        let ec = ''
+        for (let j = 0; j < this.eclist.length; j++) {
+          ec = this.eclist[j]
+          if (ec.id === parseInt(gNode.getAttribute('id'))) {
+            break
+          }
+        }
+        console.log(ec.x)
+        console.log(gNode.getAttribute('x'))
+        this.ec_id = ec.id
+        if (ec.x !== parseInt(gNode.getAttribute('x'))) {
+          console.log('update')
+          axios({
+            method: 'put',
+            url: global.httpUrl + `api/ontology/${this.ontologyId}/eventclass/${this.ec_id}`,
+            withCredentials: true,
+            data: {
+              id: ec.id,
+              name: ec.name,
+              oid: this.ontologyId,
+              parentId: ec.parentid,
+              x: gNode.getAttribute('x')
+            }
+          })
+        }
+        this.refreshECSvg()
+      }
     }
   },
   mounted: function () {
     this.refreshECSvg()
+    this.refreshConceptSvg()
   }
 }
 </script>
@@ -238,15 +358,26 @@ export default {
     box-shadow: 0 0 3px #aaa;
     padding-right: 70px;
   }
-  /* === HTML5 validation styles === */
-
-.ec_form input:required:valid, .ec_form textarea:required:valid{
-	box-shadow: 0 0 5px #66ddff;
-	border-color: #44bbff;
-}
-
-.ec_form input:focus:invalid, .ec_form textarea:focus:invalid{
-	box-shadow: 0 0 5px #d45252;
-	border-color: #b03535
-}
+  .ec_form input:required:valid, .ec_form textarea:required:valid{
+    box-shadow: 0 0 5px #66ddff;
+    border-color: #44bbff;
+  }
+  .ec_form input:focus:invalid, .ec_form textarea:focus:invalid{
+    box-shadow: 0 0 5px #d45252;
+    border-color: #b03535
+  }
+  img.usefulimg:hover{
+    color: #123456
+  }
+  .lielement {
+    height 45px
+  }
+  #lisubmit button {
+    margin-left 50px
+    margin-right 50px
+    width 60px
+  }
+  .objOntToolMenu {
+    margin-left 50px
+  }
 </style>
