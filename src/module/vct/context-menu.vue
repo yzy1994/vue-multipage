@@ -115,7 +115,7 @@ export default {
     width 80px
     height 35px
     line-height 35px
-    font-size 12px
+    font-size 10px
     text-align center
     display block
     color #1a1a1a

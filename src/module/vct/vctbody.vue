@@ -3,7 +3,7 @@
     <navi></navi>
     <div class="row m-t-20 clearfix w-1140">
       <leftbar @displayEC="displayEC" @displayECR="displayECR"></leftbar>
-      <righttab></righttab>
+      <righttab :eclist="eclist"></righttab>
     </div>
     <draggablewin title="事件类层次图" id="ecsWin" :visible="this.isECSVisible" @closeWindow="this.closeECSWin">
       <template slot="content">
@@ -29,7 +29,8 @@
     </draggablewin>
     <draggablewin title="事件非分类关系图" id="ecrsWin" :visible="this.isECRWinVisible" @closeWindow="this.closeECRWin">
       <template slot="content">
-        <ecrecharts></ecrecharts>
+        <!-- <echartsvue></echartsvue> -->
+        <ecrecharts :inputs="echartsInput" :echartsDivId="echartsDivId"></ecrecharts>
       </template>
     </draggablewin>
     <foot></foot>
@@ -43,6 +44,9 @@
       <li id="editConcept" class="item">编辑概念</li>
       <li id="addConcept" class="item">添加子概念</li>
       <li id="deleteConcept" class="item">删除概念</li>
+    </contextmenu>
+    <contextmenu @update:show="openEchartsContext" :show="this.echartsDivContextMenuVisible" :target="this.echartsDivContextMenuTarget">
+      <li id="addECR" class="item" @click="this.addEventClassRelation">添加事件类关系</li>
     </contextmenu>
     <draggablewin title="事件类编辑" id="ecEditWin" :visible="this.isECEditVisible" @closeWindow="this.closeECEdit">
       <template slot="content">
@@ -79,6 +83,47 @@
         </form>
       </template>
     </draggablewin>
+    <modal title="添加事件类关系" :show="isModalVisible" @close="closeModal">
+      <div>
+        <form class="form-horizontal" role="form" id="ontInfoForm" >
+          <div class="form-group">
+            <label for="name" class="col-sm-2 control-label">关系类型:</label>
+            <div class="col-sm-10">
+              <select name="rid" id="rid" v-bind:value="this.rid">
+                <!-- <option value="1">包含关系</option> -->
+                <option value="2">组成关系</option>
+                <option value="3">因果关系</option>
+                <option value="4">跟随关系</option>
+                <option value="5">并发关系</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="field" class="col-sm-2 control-label">source事件类:</label>
+            <div class="col-sm-10">
+              <select name="source-eid" id="source-eid" v-bind:value="this.sourceId">
+                <option v-for="ec in eclist" :key="ec.id" v-bind:value="ec.id">{{ ec.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="latname" class="col-sm-2 control-label">target事件类:</label>
+            <div class="col-sm-10">
+              <select name="target-eid" id="target-eid" v-bind:value="this.targetId">
+                <option v-for="ec in eclist" :key="ec.id" v-bind:value="ec.id">{{ ec.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-sm-offset-8 col-sm-10">
+              <button type="reset" class="button btn-info">重置</button>
+              &nbsp;
+              <button type="button" id="submitForm" class="button btn-success" @click="submitAddECRForm">提交</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </modal>
   </div>
 </template>
 
@@ -94,6 +139,11 @@ import ecssvg from './ecssvg.vue'
 import contextmenu from './context-menu.vue'
 import ecrecharts from './ecr-echarts.vue'
 import conceptsvg from './conceptsvg.vue'
+import echartsvue from './echarts.vue'
+import modal from '../../components/modal.vue'
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'jquery/dist/jquery.min.js'
+import 'bootstrap/dist/js/bootstrap.min.js'
 export default {
   components: {
     navi,
@@ -104,7 +154,9 @@ export default {
     ecssvg,
     contextmenu,
     ecrecharts,
-    conceptsvg
+    conceptsvg,
+    echartsvue,
+    modal
   },
   data () {
     return {
@@ -129,13 +181,21 @@ export default {
       isConceptsVisible: true,
       conceptContextMenuTarget: null,
       conceptContextMenuVisible: false,
+      echartsDivContextMenuTarget: null,
+      echartsDivContextMenuVisible: false,
       concept_id: null,
       selectedConcept: null,
       parentConcept: null,
       concept_name: null,
       concept_parentname: null,
       concept_parentid: null,
-      concept_x: null
+      concept_x: null,
+      echartsInput: null,
+      echartsDivId: 'echartsMain',
+      isModalVisible: false,
+      rid: null,
+      sourceId: null,
+      targetId: null
     }
   },
   methods: {
@@ -191,6 +251,12 @@ export default {
       // console.log(selectElmentId)
       // this.selectElmentId = selectElmentId
     },
+    openEchartsContext (isShow) {
+      this.echartsDivContextMenuVisible = isShow
+    },
+    closeModal () {
+      this.isModalVisible = false
+    },
     openConceptContext (val) {
       this.conceptContextMenuVisible = val
     },
@@ -224,6 +290,10 @@ export default {
       this.ec_parentid = this.ec_id
       this.ec_id = null
       this.ec_name = null
+    },
+    addEventClassRelation () {
+      console.log('qdjq')
+      this.isModalVisible = true
     },
     deleteEventClass (e) {
       axios({
@@ -295,11 +365,8 @@ export default {
             break
           }
         }
-        console.log(ec.x)
-        console.log(gNode.getAttribute('x'))
         this.ec_id = ec.id
         if (ec.x !== parseInt(gNode.getAttribute('x'))) {
-          console.log('update')
           axios({
             method: 'put',
             url: global.httpUrl + `api/ontology/${this.ontologyId}/eventclass/${this.ec_id}`,
@@ -315,11 +382,47 @@ export default {
         }
         this.refreshECSvg()
       }
+    },
+    refreshCharts () {
+      axios({
+        method: 'get',
+        url: global.httpUrl + `api/ontology/${this.ontologyId}/relation`,
+        withCredentials: true
+      }).then(response => {
+        console.log(response)
+        this.echartsInput = {}
+        this.echartsInput.nodes = response.data.data.echartsNodeList
+        this.echartsInput.links = response.data.data.echartsLinkList
+        this.echartsDivContextMenuTarget = document.getElementsByClassName(this.echartsDivId)
+        console.log(this.echartsDivContextMenuTarget)
+      })
+    },
+    submitAddECRForm () {
+      this.isModalVisible = false
+      axios({
+        method: 'post',
+        url: global.httpUrl + `api/ontology/${this.ontologyId}/relation`,
+        data: {
+          rid: document.getElementById('rid').value,
+          sourceId: document.getElementById('source-eid').value,
+          targetId: document.getElementById('target-eid').value
+        },
+        withCredentials: true})
+      .then(response => {
+        if (response.data.code !== 200) {
+          console.log('操作失败')
+          return false
+        } else {
+          this.refreshECSvg()
+          return true
+        }
+      })
     }
   },
   mounted: function () {
     this.refreshECSvg()
     this.refreshConceptSvg()
+    this.refreshCharts()
   }
 }
 </script>

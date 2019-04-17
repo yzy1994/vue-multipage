@@ -6,10 +6,10 @@
     <div class="header-bottom w-1140">
       <ul id="webmenu" class="first-menu">
         <li>
-          <a>首页</a>
+          <a href="index.html">首页</a>
         </li>
         <li>
-          <a>事件本体构建工具</a>
+          <a href="vct.html">事件本体构建工具</a>
         </li>
         <li>
           <a>文本事件标注工具</a>
@@ -18,7 +18,7 @@
           <a>中文突发事件语料库</a>
         </li>
         <li>
-          <a>事件本体研究团队</a>
+          <a href="aboutus.html">事件本体研究团队</a>
         </li>
       </ul>
     </div>

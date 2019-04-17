@@ -8,7 +8,7 @@
         <!-- <li><a href="#tab2" data-toggle="tab">概念层次图目录结构</a></li> -->
       </ul>
       <div id="myTabContent" class="tab-content clearfix list-wrap">
-        <div class="tab-pane fade m-t-20" id="tab0">
+        <div class="tab-pane fade m-t-20 in" id="tab0">
           <div class="artical-title">
             当前操作的本体: <i><span class="ontname">"突发事件本体"</span></i>
           </div>
@@ -62,14 +62,58 @@
           <div class="markdown">
             动作要素描述事件的变化过程及其特征，是对程度，方式，方法，工具等的描述，例如快慢，使用什么，根据什么等等。</div>
         </div>
-        <div class="tab-pane fade m-t-20" id="tab3">
-          <div class="artical-title">事件层次图目录结构</div>
-          
+        <div class="tab-pane fade m-t-20 in" id="tab3">
+          <div class="artical-title">事件类层次图目录结构</div>
+          <div>
+            <ul id="treeDemo" class="ztree"></ul>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<script>
+import $ from '../../assets/jquery-vendor.js'
+import '@ztree/ztree_v3/js/jquery.ztree.core.js'
+export default {
+  props: {
+    eclist: null
+  },
+  watch: {
+    eclist (newVal) {
+      if (newVal === null) {
+        return
+      }
+      console.log(newVal)
+      let zNodes = []
+      for (let i = 0; i < newVal.length; i++) {
+        let zNode = {}
+        zNode.id = newVal[i].id
+        zNode.pId = newVal[i].parentId
+        zNode.name = newVal[i].name
+        zNodes.push(zNode)
+      }
+      let settings = {
+        data: {
+          simpleData: {
+            enable: true
+          }
+        }
+      }
+      console.log(settings)
+      console.log(zNodes)
+      console.log($.fn)
+      $.fn.zTree.init($('#treeDemo'), settings, zNodes)
+    }
+  },
+  mounted: function () {
+    let test = $('tab3')
+    console.log(test)
+  }
+}
+</script>
+
 
 <style lang="stylus">
   .artical-title {
